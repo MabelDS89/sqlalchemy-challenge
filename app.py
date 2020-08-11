@@ -27,7 +27,7 @@ def Home():
     f"/api/v1.0/stations<br/>"
     f"/api/v1.0/tobs<br/>"
     f"/api/v1.0/start/<start><br/>"
-    f"/api/v1.0/start%20end/<start>/<end><br/>"      
+    f"/api/v1.0/startend/<start_date>/<end_date><br/>"      
     )
 
 @app.route("/api/v1.0/precipitation")
@@ -74,7 +74,7 @@ def TOBs():
     """Return a list of all TOBs for USC00519281 station 08/23/2016-08/23/2017"""
     # Query TOBs
     USC00519281_12mo = session.query(Measurement.date, Measurement.tobs).\
-    filter(Measurement.tobs).\
+    filter(Measurement.station == "USC00519281").\
     filter(Measurement.date >= '2016-08-23').\
     order_by(Measurement.date.desc()).all()
 
@@ -85,16 +85,33 @@ def TOBs():
 
     return jsonify(USC00519281_12mo)
 
-# @app.route("/api/v1.0/start/<start>")
-# def Start():
-#     canonicalized = start.replace(" ", "").lower()
-#     for character in justice_league_members:
-#         search_term = character["real_name"].replace(" ", "").lower()
+@app.route("/api/v1.0/start/<start_date>")
+def Start(start_date):
 
-#         if search_term == canonicalized:
-#             return jsonify(character)
+    session = Session(engine)
 
-#     return jsonify({"error": f"Character with real_name {real_name} not found."}), 404
+    start_output = session.query(func.min(Measurement.tobs), func.max(Measurement.tobs), func.avg(Measurement.tobs)).filter(Measurement.date >= start_date).all()
+
+    session.close()
+
+    startlist = list(np.ravel(start_output))
+
+    return jsonify(startlist)
+    
+@app.route("/api/v1.0/startend/<start_date>/<end_date>")
+def Start_End(start_date, end_date):
+
+    session = Session(engine)
+
+    output = session.query(func.min(Measurement.tobs), func.max(Measurement.tobs), func.avg(Measurement.tobs)).\
+    filter(Measurement.date >= start_date).\
+    filter(Measurement.date <= end_date).all()
+
+    session.close()
+
+    start_endlist = list(np.ravel(output))
+
+    return jsonify(start_endlist)
 
 if __name__ == "__main__":
     app.run(debug=True)
